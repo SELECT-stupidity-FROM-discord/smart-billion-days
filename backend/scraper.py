@@ -217,7 +217,7 @@ def fetch_amazon(url: str) -> str:
     try:
         return fetch(f"{base.rstrip('/')}/?{urlsplit(url).query}", timeout=30)
     except StoreUnavailable:
-        return fetch(f"{base.rstrip('/')}/?{urlsplit(url).query}", timeout=25)
+        return fetch(f"{base.rstrip('/')}/?{urlsplit(url).query}", timeout=20)
 
 
 _NUM = (r"(?:₹|\brs\.?|\binr)?\s*(\d[\d,]*(?:\.\d+)?)\s*(k|thousand|lakhs?|lacs?)?(?:\s*(?:rs\.?|rupees|inr|/-))?"
