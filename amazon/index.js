@@ -62,6 +62,7 @@ export default async function handler(req, res) {
     const old = browser;
     browser = null;
     if (old) old.close().catch(() => {});
+    console.log("load failed:", url.toString(), e && e.message);
     send(res, 502, String(e && e.message));
   } finally {
     if (tab) tab.close().catch(() => {});

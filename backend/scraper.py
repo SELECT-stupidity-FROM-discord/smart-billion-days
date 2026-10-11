@@ -214,7 +214,10 @@ def fetch_amazon(url: str) -> str:
     base = os.environ.get("AMAZON_URL")
     if not base:
         return fetch_browser(url)
-    return fetch(f"{base.rstrip('/')}/?{urlsplit(url).query}", timeout=30)
+    try:
+        return fetch(f"{base.rstrip('/')}/?{urlsplit(url).query}", timeout=30)
+    except StoreUnavailable:
+        return fetch(f"{base.rstrip('/')}/?{urlsplit(url).query}", timeout=25)
 
 
 _NUM = (r"(?:₹|\brs\.?|\binr)?\s*(\d[\d,]*(?:\.\d+)?)\s*(k|thousand|lakhs?|lacs?)?(?:\s*(?:rs\.?|rupees|inr|/-))?"
