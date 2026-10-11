@@ -208,15 +208,11 @@ def parse_flipkart(html: str) -> list:
     return out
 
 
-def fetch_via_function(url: str) -> str:
-    qs = urlsplit(url).query
-    headers = {"x-internal-key": os.environ.get("AMAZON_FETCH_SECRET", "")}
-    if os.environ.get("VERCEL_AUTOMATION_BYPASS_SECRET"):
-        headers["x-vercel-protection-bypass"] = os.environ["VERCEL_AUTOMATION_BYPASS_SECRET"]
-    return fetch(f"https://{os.environ['VERCEL_URL']}/api/amazon?{qs}", headers, timeout=30)
-
-
-ON_VERCEL = bool(os.environ.get("VERCEL"))
+def fetch_amazon(url: str) -> str:
+    base = os.environ.get("AMAZON_URL")
+    if not base:
+        return fetch_browser(url)
+    return fetch(f"{base.rstrip('/')}/?{urlsplit(url).query}", timeout=30)
 
 
 _NUM = (r"(?:₹|\brs\.?|\binr)?\s*(\d[\d,]*(?:\.\d+)?)\s*(k|thousand|lakhs?|lacs?)?(?:\s*(?:rs\.?|rupees|inr|/-))?"
@@ -293,7 +289,7 @@ def flipkart_url(q: str, page: int, low=None, high=None, sort=None, rating=None,
 
 
 STORES = {
-    "amazon": (amazon_url, fetch_via_function if ON_VERCEL else fetch_browser, parse_amazon),
+    "amazon": (amazon_url, fetch_amazon, parse_amazon),
     "flipkart": (flipkart_url, fetch, parse_flipkart),
 }
 

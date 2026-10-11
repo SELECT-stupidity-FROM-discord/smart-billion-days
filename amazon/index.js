@@ -18,21 +18,24 @@ async function getBrowser() {
   return browser;
 }
 
+function send(res, code, body, type = "text/plain; charset=utf-8") {
+  res.statusCode = code;
+  res.setHeader("Content-Type", type);
+  res.end(body);
+}
+
 module.exports = async (req, res) => {
-  const secret = process.env.AMAZON_FETCH_SECRET;
-  if (process.env.VERCEL && (!secret || req.headers["x-internal-key"] !== secret)) {
-    return res.status(403).send("forbidden");
-  }
-  const q = String(req.query.k || "").trim().slice(0, 80);
-  const page = Number(req.query.page || 1);
-  if (!q || !Number.isInteger(page) || page < 1 || page > 20) return res.status(400).send("bad k or page");
+  const query = new URL(req.url, "http://amazon").searchParams;
+  const q = (query.get("k") || "").trim().slice(0, 80);
+  const page = Number(query.get("page") || 1);
+  if (!q || !Number.isInteger(page) || page < 1 || page > 20) return send(res, 400, "bad k or page");
   const url = new URL("https://www.amazon.in/s");
   url.searchParams.set("k", q);
   url.searchParams.set("page", page);
   for (const [name, shape] of Object.entries(PARAMS)) {
-    if (!(name in req.query)) continue;
-    const v = String(req.query[name]);
-    if (!shape.test(v)) return res.status(400).send(`bad ${name}`);
+    if (!query.has(name)) continue;
+    const v = query.get(name);
+    if (!shape.test(v)) return send(res, 400, `bad ${name}`);
     url.searchParams.set(name, v);
   }
 
@@ -50,13 +53,12 @@ module.exports = async (req, res) => {
         (document.body && document.body.innerText.includes("No results for")),
       { timeout: 12000 },
     ).catch(() => {});
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.status(200).send(await tab.content());
+    send(res, 200, await tab.content(), "text/html; charset=utf-8");
   } catch (e) {
     const old = browser;
     browser = null;
     if (old) old.close().catch(() => {});
-    res.status(502).send(String(e && e.message));
+    send(res, 502, String(e && e.message));
   } finally {
     if (tab) tab.close().catch(() => {});
   }
