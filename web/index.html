@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search Amazon and Flipkart</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1 class="title">Search Amazon and Flipkart.<br>Get only what you asked for.</h1>
+    <form class="search" role="search" autocomplete="off">
+      <label for="q" class="sr">What are you looking for?</label>
+      <input id="q" name="q" type="search" maxlength="80" placeholder="Try: wired earphones under ₹1,000" enterkeyhint="search">
+      <div class="tools">
+        <button type="button" class="clear" aria-label="Clear search and go back" tabindex="-1">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+        <span class="tools-sep" aria-hidden="true"></span>
+        <button type="button" class="opts-btn" aria-label="Sort and filter" aria-expanded="false" aria-controls="opts">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
+          <span class="opts-dot" hidden></span>
+        </button>
+      </div>
+      <button type="submit" class="go" aria-label="Search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <div class="opts" id="opts" role="group" aria-label="Sort and filter" hidden>
+        <fieldset class="opt-group">
+          <legend>Sort by</legend>
+          <div class="chips">
+            <label><input type="radio" name="sort" value="relevance" checked><span>Relevance</span></label>
+            <label><input type="radio" name="sort" value="price-asc"><span>Price: low to high</span></label>
+            <label><input type="radio" name="sort" value="price-desc"><span>Price: high to low</span></label>
+            <label><input type="radio" name="sort" value="rating"><span>Customer rating</span></label>
+            <label><input type="radio" name="sort" value="popular"><span>Popularity</span></label>
+            <label><input type="radio" name="sort" value="newest"><span>Newest</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="opt-group">
+          <legend>Rating</legend>
+          <div class="chips">
+            <label><input type="radio" name="rating" value="" checked><span>Any</span></label>
+            <label><input type="radio" name="rating" value="4"><span>4★ &amp; up</span></label>
+            <label><input type="radio" name="rating" value="3"><span>3★ &amp; up</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="opt-group">
+          <legend>Discount</legend>
+          <div class="chips">
+            <label><input type="radio" name="discount" value="" checked><span>Any</span></label>
+            <label><input type="radio" name="discount" value="10"><span>10%+</span></label>
+            <label><input type="radio" name="discount" value="30"><span>30%+</span></label>
+            <label><input type="radio" name="discount" value="50"><span>50%+</span></label>
+            <label><input type="radio" name="discount" value="70"><span>70%+</span></label>
+          </div>
+        </fieldset>
+        <div class="opts-foot">
+          <button type="button" class="opts-reset">Reset</button>
+          <button type="button" class="opts-done">Done</button>
+        </div>
+      </div>
+      <fieldset class="filters">
+        <legend class="filters-label">Price</legend>
+        <label class="price-field"><span aria-hidden="true">₹</span><input id="min" inputmode="numeric" maxlength="10" placeholder="Min" aria-label="Lowest price in rupees"></label>
+        <span class="price-dash" aria-hidden="true">–</span>
+        <label class="price-field"><span aria-hidden="true">₹</span><input id="max" inputmode="numeric" maxlength="10" placeholder="Max" aria-label="Highest price in rupees"></label>
+      </fieldset>
+    </form>
+    <section class="maintenance" aria-live="polite" hidden>
+      <h2 class="title">Search is paused for a moment.</h2>
+      <p class="maintenance-body">The part that checks each result is down, so results wouldn't be reliable. This page picks up again by itself when it's back.</p>
+      <div class="countdown" role="timer">
+        <div class="dial">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><circle class="dial-track" cx="24" cy="24" r="21"/><circle class="dial-ring" cx="24" cy="24" r="21" pathLength="100"/></svg>
+          <span class="dial-count">20</span>
+        </div>
+        <span class="countdown-label">until the next check</span>
+      </div>
+    </section>
+    <section class="history" aria-label="Recent searches" hidden>
+      <div class="history-head">
+        <h2>Recent searches</h2>
+        <button type="button" class="history-clear">Clear</button>
+      </div>
+      <ul class="history-list"></ul>
+    </section>
+  </div>
+  <div class="bar" aria-hidden="true"></div>
+</header>
+
+<main class="results wrap" hidden>
+  <p class="sr" aria-live="polite" id="live"></p>
+  <div class="status" aria-hidden="true"><div class="status-track"></div></div>
+  <div class="outage" hidden><span class="outage-text"></span><button type="button" class="retry">Try again</button></div>
+  <div class="grid"></div>
+  <div class="notice" hidden>
+    <h2 class="notice-title"></h2>
+    <p class="notice-body"></p>
+  </div>
+  <section class="filtered" hidden>
+    <button type="button" class="filtered-toggle" aria-expanded="false" aria-controls="filtered-body">
+      <span class="filtered-label"></span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="filtered-body" id="filtered-body" hidden>
+      <p class="filtered-note"></p>
+      <div class="grid filtered-grid"></div>
+    </div>
+  </section>
+  <nav class="pager" aria-label="Result pages" hidden>
+    <button type="button" class="prev">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+      Previous
+    </button>
+    <span class="page-now" aria-current="page"></span>
+    <button type="button" class="next">
+      Next
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </nav>
+</main>
+
+<template id="card">
+  <a class="card" target="_blank" rel="noopener">
+    <div class="ph"><img alt="" loading="lazy" decoding="async"></div>
+    <div class="meta">
+      <div class="store"></div>
+      <div class="name"></div>
+      <div class="stars" hidden><span class="stars-avg"></span><span class="stars-count"></span></div>
+      <div class="prices"><span class="price"></span><s class="mrp"></s><span class="off"></span></div>
+      <div class="why" hidden></div>
+    </div>
+  </a>
+</template>
+
+<template id="history-row">
+  <li class="hrow">
+    <button type="button" class="hpick">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A86" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span></span>
+    </button>
+    <button type="button" class="hx">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </li>
+</template>
+</body>
+</html>
