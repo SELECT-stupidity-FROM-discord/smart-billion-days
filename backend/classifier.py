@@ -17,9 +17,11 @@ TIMEOUT = 12
 
 SYSTEM = ("A shopper searched Amazon.in and Flipkart in India. Define the minimum criteria for the product they want, "
           "excluding price. Fill the three lines. Copy only what the search says; never add anything it doesn't mention. "
-          "Write none when the search doesn't say.")
+          "Write none when the search doesn't say. Name the product the way the shopper means it, and when stores mix "
+          "similar products together, say what it is not.")
 EXAMPLES = [
-    ("wired earphones", "Product: earphones\nBrand: none\nAlso: connects with a cable, not wireless"),
+    ("wired earphones", "Product: in-ear earphones, not over-ear headphones\nBrand: none\nAlso: connects with a cable, not wireless"),
+    ("bluetooth headphones", "Product: over-ear or on-ear headphones, not earbuds or neckbands\nBrand: none\nAlso: connects with Bluetooth"),
     ("jbl speaker under 2000", "Product: speaker\nBrand: JBL\nAlso: none"),
     ("mixer grinder", "Product: mixer grinder\nBrand: none\nAlso: none"),
     ("iphone 15 case", "Product: phone case\nBrand: none\nAlso: fits the iPhone 15"),
