@@ -88,6 +88,9 @@ def test():
 
         code, body = get(base, "/")
         assert code == 200 and b"Search Amazon and Flipkart" in body
+        assert get(base, "/app.js")[0] == 200
+        assert get(base, "/../backend/server.py")[0] == 404
+        assert get(base, "/api/nope")[0] == 404
     finally:
         srv.shutdown()
     print("ok")

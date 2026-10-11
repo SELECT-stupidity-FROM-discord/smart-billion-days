@@ -1,11 +1,12 @@
 import json
+import mimetypes
 import os
 import threading
 import time
-from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from socketserver import ThreadingMixIn
+from urllib.parse import parse_qs
+from wsgiref.simple_server import WSGIServer, make_server as wsgi_server
 
 import classifier
 import scraper
@@ -67,75 +68,90 @@ def cached_search(query: str, page: int = 1, price=None, sort=None, rating=None,
     return result, ok
 
 
-class Handler(SimpleHTTPRequestHandler):
-    def do_GET(self):
-        url = urlsplit(self.path)
-        if url.path == "/api/search":
-            return self.api_search(url.query)
-        if url.path == "/api/price":
-            text, low, high = scraper.split_price(" ".join(parse_qs(url.query).get("q", [""])[0].split())[:MAX_QUERY])
-            return self.send_json(200, {"query": text, "low": low, "high": high}, cache=86400)
-        if url.path == "/api/status":
-            return self.send_json(200, {"mode": "LIVE" if probe() else "MAINTENANCE"}, cache=MODE_TTL)
-        return super().do_GET()
+STATUS = {200: "200 OK", 400: "400 Bad Request", 404: "404 Not Found", 500: "500 Internal Server Error",
+          503: "503 Service Unavailable"}
 
-    def end_headers(self):
-        if not self.path.startswith("/api/"):
-            self.send_header("Cache-Control", "no-cache")
-        super().end_headers()
 
-    def api_search(self, qs: str):
-        params = parse_qs(qs, keep_blank_values=True)
-        query = " ".join(params.get("q", [""])[0].split())
-        page = params.get("page", ["1"])[0]
-        if not query:
-            return self.send_json(400, {"error": "Missing q"})
-        if len(query) > MAX_QUERY:
-            return self.send_json(400, {"error": f"q is longer than {MAX_QUERY} characters"})
-        if not page.isdecimal() or not 1 <= int(page) <= MAX_PAGE:
-            return self.send_json(400, {"error": f"page must be 1 to {MAX_PAGE}"})
-        price = None
-        if "min" in params or "max" in params:
-            ends = [params.get(k, [""])[0].strip() for k in ("min", "max")]
-            if any(e and not (e.isdecimal() and int(e) <= MAX_PRICE) for e in ends):
-                return self.send_json(400, {"error": f"min and max must be whole rupees up to {MAX_PRICE}"})
-            low, high = (int(e) if e and int(e) else None for e in ends)
-            price = (high, low) if low and high and low > high else (low, high)
-        sort, rating, discount = (params.get(k, [""])[0] for k in ("sort", "rating", "discount"))
-        if sort and sort not in scraper.SORTS:
-            return self.send_json(400, {"error": f"sort must be one of {', '.join(scraper.SORTS)}"})
-        if rating and rating not in [str(r) for r in scraper.RATINGS]:
-            return self.send_json(400, {"error": "rating must be 3 or 4"})
-        if discount and discount not in [str(d) for d in scraper.DISCOUNTS]:
-            return self.send_json(400, {"error": "discount must be 10, 30, 50 or 70"})
-        options = {"sort": None if sort in ("", "relevance") else sort,
-                   "rating": int(rating) if rating else None, "discount": int(discount) if discount else None}
-        if self.headers.get("x-vercel-oidc-token"):
-            os.environ["VERCEL_OIDC_TOKEN"] = self.headers["x-vercel-oidc-token"]
-        if not _mode["live"] and not probe():
-            return self.send_json(503, {"mode": "MAINTENANCE"})
-        try:
-            result, ok = cached_search(query, int(page), price, **options)
-            return self.send_json(200, result, cache=CACHE_TTL if ok else 0)
-        except classifier.JevDown as e:
-            went_down(str(e))
-            return self.send_json(503, {"mode": "MAINTENANCE"})
-        except Exception as e:
-            self.log_error("search failed for %r: %r", query, e)
-            return self.send_json(500, {"error": "Search failed"})
+def api_search(qs: str):
+    params = parse_qs(qs, keep_blank_values=True)
+    query = " ".join(params.get("q", [""])[0].split())
+    page = params.get("page", ["1"])[0]
+    if not query:
+        return 400, {"error": "Missing q"}, 0
+    if len(query) > MAX_QUERY:
+        return 400, {"error": f"q is longer than {MAX_QUERY} characters"}, 0
+    if not page.isdecimal() or not 1 <= int(page) <= MAX_PAGE:
+        return 400, {"error": f"page must be 1 to {MAX_PAGE}"}, 0
+    price = None
+    if "min" in params or "max" in params:
+        ends = [params.get(k, [""])[0].strip() for k in ("min", "max")]
+        if any(e and not (e.isdecimal() and int(e) <= MAX_PRICE) for e in ends):
+            return 400, {"error": f"min and max must be whole rupees up to {MAX_PRICE}"}, 0
+        low, high = (int(e) if e and int(e) else None for e in ends)
+        price = (high, low) if low and high and low > high else (low, high)
+    sort, rating, discount = (params.get(k, [""])[0] for k in ("sort", "rating", "discount"))
+    if sort and sort not in scraper.SORTS:
+        return 400, {"error": f"sort must be one of {', '.join(scraper.SORTS)}"}, 0
+    if rating and rating not in [str(r) for r in scraper.RATINGS]:
+        return 400, {"error": "rating must be 3 or 4"}, 0
+    if discount and discount not in [str(d) for d in scraper.DISCOUNTS]:
+        return 400, {"error": "discount must be 10, 30, 50 or 70"}, 0
+    options = {"sort": None if sort in ("", "relevance") else sort,
+               "rating": int(rating) if rating else None, "discount": int(discount) if discount else None}
+    if not _mode["live"] and not probe():
+        return 503, {"mode": "MAINTENANCE"}, 0
+    try:
+        result, ok = cached_search(query, int(page), price, **options)
+        return 200, result, CACHE_TTL if ok else 0
+    except classifier.JevDown as e:
+        went_down(str(e))
+        return 503, {"mode": "MAINTENANCE"}, 0
+    except Exception as e:
+        print(f"search failed for {query!r}: {e!r}")
+        return 500, {"error": "Search failed"}, 0
 
-    def send_json(self, code: int, payload: dict, cache: int = 0):
-        data = json.dumps(payload, ensure_ascii=False).encode()
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", f"public, s-maxage={cache}" if cache else "no-store")
-        self.end_headers()
-        self.wfile.write(data)
+
+def static(path: str, start_response):
+    file = (WEB_DIR / path.lstrip("/")).resolve()
+    if file.is_dir():
+        file = file / "index.html"
+    if WEB_DIR not in file.parents or not file.is_file():
+        start_response(STATUS[404], [("Content-Type", "text/plain")])
+        return [b"Not found"]
+    data = file.read_bytes()
+    start_response(STATUS[200], [("Content-Type", mimetypes.guess_type(file.name)[0] or "application/octet-stream"),
+                                 ("Content-Length", str(len(data))), ("Cache-Control", "no-cache")])
+    return [data]
+
+
+def app(environ, start_response):
+    path, qs = environ.get("PATH_INFO") or "/", environ.get("QUERY_STRING", "")
+    if environ.get("HTTP_X_VERCEL_OIDC_TOKEN"):
+        os.environ["VERCEL_OIDC_TOKEN"] = environ["HTTP_X_VERCEL_OIDC_TOKEN"]
+    if path == "/api/search":
+        code, payload, cache = api_search(qs)
+    elif path == "/api/price":
+        text, low, high = scraper.split_price(" ".join(parse_qs(qs).get("q", [""])[0].split())[:MAX_QUERY])
+        code, payload, cache = 200, {"query": text, "low": low, "high": high}, 86400
+    elif path == "/api/status":
+        code, payload, cache = 200, {"mode": "LIVE" if probe() else "MAINTENANCE"}, MODE_TTL
+    elif path.startswith("/api/"):
+        code, payload, cache = 404, {"error": "Not found"}, 0
+    else:
+        return static(path, start_response)
+    data = json.dumps(payload, ensure_ascii=False).encode()
+    start_response(STATUS[code], [("Content-Type", "application/json; charset=utf-8"),
+                                  ("Content-Length", str(len(data))),
+                                  ("Cache-Control", f"public, s-maxage={cache}" if cache else "no-store")])
+    return [data]
+
+
+class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
+    daemon_threads = True
 
 
 def make_server(host="127.0.0.1", port=8000):
-    return ThreadingHTTPServer((host, port), partial(Handler, directory=str(WEB_DIR)))
+    return wsgi_server(host, port, app, server_class=ThreadingWSGIServer)
 
 
 if __name__ == "__main__":
