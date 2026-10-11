@@ -339,6 +339,44 @@ async function checkStatus() {
 }
 
 
+const root = document.documentElement;
+const themeBtn = $(".theme");
+const darkQuery = matchMedia("(prefers-color-scheme: dark)");
+
+function labelTheme() {
+  themeBtn.setAttribute("aria-label", root.dataset.theme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+}
+
+function storedTheme() {
+  try { return localStorage.getItem("theme"); } catch { return null; }
+}
+
+themeBtn.addEventListener("click", () => {
+  const next = root.dataset.theme === "dark" ? "light" : "dark";
+  const apply = () => {
+    root.dataset.theme = next;
+    try { localStorage.setItem("theme", next); } catch {}
+    labelTheme();
+  };
+  if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) return apply();
+  const r = themeBtn.getBoundingClientRect();
+  const x = r.left + r.width / 2, y = r.top + r.height / 2;
+  const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  document.startViewTransition(apply).ready.then(() => {
+    root.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+      { duration: 650, easing: "cubic-bezier(.65, 0, .35, 1)", pseudoElement: "::view-transition-new(root)" },
+    );
+  });
+});
+darkQuery.addEventListener("change", (e) => {
+  if (storedTheme()) return;
+  root.dataset.theme = e.matches ? "dark" : "light";
+  labelTheme();
+});
+if (!root.dataset.theme) root.dataset.theme = darkQuery.matches ? "dark" : "light";
+labelTheme();
+
 async function search(raw, { push = true, to = 1 } = {}) {
   const q = raw.trim().replace(/\s+/g, " ");
   if (!q) return;
