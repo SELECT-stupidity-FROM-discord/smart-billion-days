@@ -362,10 +362,12 @@ themeBtn.addEventListener("click", () => {
   const r = themeBtn.getBoundingClientRect();
   const x = r.left + r.width / 2, y = r.top + r.height / 2;
   const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  root.style.setProperty("--reveal-x", `${x}px`);
+  root.style.setProperty("--reveal-y", `${y}px`);
   document.startViewTransition(apply).ready.then(() => {
     root.animate(
       { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
-      { duration: 650, easing: "cubic-bezier(.65, 0, .35, 1)", pseudoElement: "::view-transition-new(root)" },
+      { duration: 650, easing: "cubic-bezier(.65, 0, .35, 1)", fill: "forwards", pseudoElement: "::view-transition-new(root)" },
     );
   });
 });

@@ -245,7 +245,7 @@ button { font: inherit; color: inherit; }
 [data-theme="dark"] .rays { opacity: 0; transform: rotate(-90deg) scale(.4); }
 
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
-::view-transition-new(root) { z-index: 2; }
+::view-transition-new(root) { z-index: 2; clip-path: circle(0px at var(--reveal-x, 100%) var(--reveal-y, 0px)); }
 
 .bar { position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; overflow: hidden; }
 .is-loading .bar::after {
