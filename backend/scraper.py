@@ -115,6 +115,8 @@ def parse_amazon(html: str) -> list:
         raise StoreUnavailable("captcha")
     if "bm-verify" in html or "/_sec/verify" in html:
         raise StoreUnavailable("bot check")
+    if "503 - Service Unavailable Error" in html:
+        raise StoreUnavailable("blocked")
     soup = BeautifulSoup(html, "html.parser")
     out = []
     for div in soup.select('div[data-component-type="s-search-result"]'):

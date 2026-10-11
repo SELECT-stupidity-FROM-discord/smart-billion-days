@@ -1,5 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": [
+    "bom1"
+  ],
   "services": {
     "web": {
       "root": "web/"
@@ -7,17 +10,42 @@
     "api": {
       "root": "backend/",
       "entrypoint": "server:app",
-      "functions": { "server.py": { "maxDuration": 60 } },
-      "bindings": [{ "type": "service", "service": "amazon", "format": "url", "env": "AMAZON_URL" }]
+      "functions": {
+        "server.py": {
+          "maxDuration": 60
+        }
+      },
+      "bindings": [
+        {
+          "type": "service",
+          "service": "amazon",
+          "format": "url",
+          "env": "AMAZON_URL"
+        }
+      ]
     },
     "amazon": {
       "root": "amazon/",
       "entrypoint": "index.js",
-      "functions": { "index.js": { "maxDuration": 60 } }
+      "functions": {
+        "index.js": {
+          "maxDuration": 60
+        }
+      }
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": { "service": "api" } },
-    { "source": "/(.*)", "destination": { "service": "web" } }
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "web"
+      }
+    }
   ]
 }
