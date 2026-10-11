@@ -53,7 +53,11 @@ export default async function handler(req, res) {
         (document.body && document.body.innerText.includes("No results for")),
       { timeout: 12000 },
     ).catch(() => {});
-    send(res, 200, await tab.content(), "text/html; charset=utf-8");
+    const html = await tab.content();
+    if (!html.includes("s-search-result")) {
+      console.log("no results:", tab.url(), JSON.stringify(await tab.title()), html.length, html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 300));
+    }
+    send(res, 200, html, "text/html; charset=utf-8");
   } catch (e) {
     const old = browser;
     browser = null;
