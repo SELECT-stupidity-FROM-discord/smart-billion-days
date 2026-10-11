@@ -1,5 +1,5 @@
-const chromium = require("@sparticuz/chromium");
-const puppeteer = require("puppeteer-core");
+import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
 
 const LOCAL_CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const SKIP = new Set(["image", "media", "font"]);
@@ -24,7 +24,7 @@ function send(res, code, body, type = "text/plain; charset=utf-8") {
   res.end(body);
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   const query = new URL(req.url, "http://amazon").searchParams;
   const q = (query.get("k") || "").trim().slice(0, 80);
   const page = Number(query.get("page") || 1);
@@ -62,4 +62,4 @@ module.exports = async (req, res) => {
   } finally {
     if (tab) tab.close().catch(() => {});
   }
-};
+}
