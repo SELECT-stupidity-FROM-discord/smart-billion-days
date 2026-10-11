@@ -1,20 +1,23 @@
 {
-  "outputDirectory": "web",
-  "functions": {
-    "api/search.py": {
-      "includeFiles": "backend/*.py",
-      "maxDuration": 60
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "web": {
+      "root": "web/"
     },
-    "api/amazon.js": {
-      "maxDuration": 60
+    "api": {
+      "root": "backend/",
+      "entrypoint": "server:app",
+      "functions": { "server.py": { "maxDuration": 60 } },
+      "bindings": [{ "type": "service", "service": "amazon", "format": "url", "env": "AMAZON_URL" }]
     },
-    "api/status.py": {
-      "includeFiles": "backend/*.py",
-      "maxDuration": 30
-    },
-    "api/price.py": {
-      "includeFiles": "backend/*.py",
-      "maxDuration": 10
+    "amazon": {
+      "root": "amazon/",
+      "entrypoint": "index.js",
+      "functions": { "index.js": { "maxDuration": 60 } }
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": { "service": "api" } },
+    { "source": "/(.*)", "destination": { "service": "web" } }
+  ]
 }

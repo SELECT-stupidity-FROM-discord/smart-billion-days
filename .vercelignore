@@ -1,3 +1,4 @@
+**/node_modules
 backend/.venv
 backend/fixtures
 backend/test_*.py
