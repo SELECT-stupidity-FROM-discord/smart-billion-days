@@ -118,6 +118,25 @@ def jev_up() -> bool:
         return False
 
 
+@lru_cache(maxsize=512)
+def drop_same_kind(crit: tuple) -> tuple:
+    product = next((c[3:] for c in crit if c.startswith("Is ") and not c.startswith("Is not ")), None)
+    nots = [c for c in crit if c.startswith("Is not ")]
+    if not product or not nots:
+        return crit
+    a = jev({"product": product}, {f"n{i}": {
+        "type": "noul",
+        "instructions": {"product": product, "other": c[len("Is not "):],
+                         "question": "Is `other` the same kind of product as `product`, or just another name for it?"},
+        "criteria": {
+            "true": "The same kind of product, a synonym, or a type of it (like sneakers and running shoes)",
+            "false": "A different product that only looks similar or is sold alongside it (like a laptop and a laptop bag)",
+        },
+    } for i, c in enumerate(nots)})
+    same = {c for i, c in enumerate(nots) if a[f"n{i}"]["noul"] >= KEEP_AT}
+    return tuple(c for c in crit if c not in same)
+
+
 def jev_keep(crit: tuple, listings: list) -> list:
     questions = {}
     for i, x in enumerate(listings):
@@ -155,7 +174,7 @@ def match(query: str, listings: list) -> dict:
     if not listings or not jev_enabled():
         return {"listings": listings, "filtered": [], "criteria": None, "left_out": 0, "error": None}
     try:
-        crit = criteria(query.lower())
+        crit = drop_same_kind(criteria(query.lower()))
         failed = jev_keep(crit, listings)
     except JevDown:
         raise
