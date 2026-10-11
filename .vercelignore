@@ -1,0 +1,6 @@
+backend/.venv
+backend/fixtures
+backend/test_*.py
+.impeccable
+.playwright-mcp
+*.md

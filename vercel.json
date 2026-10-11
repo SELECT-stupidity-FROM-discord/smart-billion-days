@@ -1,0 +1,20 @@
+{
+  "outputDirectory": "web",
+  "functions": {
+    "api/search.py": {
+      "includeFiles": "backend/*.py",
+      "maxDuration": 60
+    },
+    "api/amazon.js": {
+      "maxDuration": 60
+    },
+    "api/status.py": {
+      "includeFiles": "backend/*.py",
+      "maxDuration": 30
+    },
+    "api/price.py": {
+      "includeFiles": "backend/*.py",
+      "maxDuration": 10
+    }
+  }
+}
