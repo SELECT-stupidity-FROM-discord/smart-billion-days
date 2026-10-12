@@ -20,8 +20,6 @@ def test():
     assert classifier.parse_criteria("Product: TV\nBrand: Samsung\nAlso: 55 inch, 4K, none\nCapacity: 4K.") == \
         ["Is TV", "Made by Samsung", "55 inch", "4K"]
     assert classifier.parse_criteria("Product: laptop\nBrand: none\nAlso: none") == ["Is laptop"]
-    assert classifier.parse_criteria("Product: headphones\nBrand: none\nNot: earbuds, neckbands\nAlso: noise cancelling") == \
-        ["Is headphones", "Is not earbuds", "Is not neckbands", "noise cancelling"]
     assert classifier.parse_criteria("Product: headphones\nAlso: noise cancelling, price below 5000, under 1000, ₹999") == \
         ["Is headphones", "noise cancelling"]
 

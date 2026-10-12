@@ -11,20 +11,20 @@ JEV_URL = "https://api.typesafe.ai/v1/systemone"
 JEV_MODEL = os.environ.get("JEV_MODEL", "jev-latest")
 SPAM_AT = 0.7
 KEEP_AT = 0.5
-MAX_CRITERIA = 6
+MAX_CRITERIA = 5
 PRICE = re.compile(r"price|budget|cost|₹|\brs\.?\b|\binr\b|\b(under|below|less than|within|upto|up to)\s*\d", re.I)
 TIMEOUT = 12
 
 SYSTEM = ("A shopper searched Amazon.in and Flipkart in India. Define the minimum criteria for the product they want, "
-          "excluding price. Fill the four lines. Copy only what the search says; never add anything it doesn't mention. "
-          "Not lists look-alike products stores mix into these results that the shopper doesn't mean. "
-          "Write none when there is nothing to say.")
+          "excluding price. Fill the three lines. Copy only what the search says; never add anything it doesn't mention. "
+          "Write none when the search doesn't say. Name the product the way the shopper means it, and when stores mix "
+          "similar products together, say what it is not.")
 EXAMPLES = [
-    ("wired earphones", "Product: earphones\nBrand: none\nNot: over-ear headphones\nAlso: connects with a cable, not wireless"),
-    ("bluetooth headphones", "Product: headphones\nBrand: none\nNot: earbuds, neckbands\nAlso: connects with Bluetooth"),
-    ("jbl speaker under 2000", "Product: speaker\nBrand: JBL\nNot: none\nAlso: none"),
-    ("mixer grinder", "Product: mixer grinder\nBrand: none\nNot: none\nAlso: none"),
-    ("iphone 15 case", "Product: phone case\nBrand: none\nNot: screen protector\nAlso: fits the iPhone 15"),
+    ("wired earphones", "Product: in-ear earphones, not over-ear headphones\nBrand: none\nAlso: connects with a cable, not wireless"),
+    ("bluetooth headphones", "Product: over-ear or on-ear headphones, not earbuds or neckbands\nBrand: none\nAlso: connects with Bluetooth"),
+    ("jbl speaker under 2000", "Product: speaker\nBrand: JBL\nAlso: none"),
+    ("mixer grinder", "Product: mixer grinder\nBrand: none\nAlso: none"),
+    ("iphone 15 case", "Product: phone case\nBrand: none\nAlso: fits the iPhone 15"),
 ]
 MESSAGES = [{"role": "system", "content": SYSTEM}] + [
     m for q, a in EXAMPLES for m in ({"role": "user", "content": q}, {"role": "assistant", "content": a})]
@@ -60,8 +60,6 @@ def parse_criteria(text: str) -> list:
             items = [f"Is {val}"]
         elif key == "brand":
             items = [f"Made by {val}"]
-        elif key == "not":
-            items = [f"Is not {v.strip()}" for v in val.split(",") if v.strip().lower() not in ("", "none")]
         else:
             items = [v.strip() for v in val.split(",") if v.strip().lower() not in ("", "none")]
         out += [c for c in items if c not in out and not PRICE.search(c)]
